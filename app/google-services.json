@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "974681705483",
+    "firebase_url": "https://geotester-eba65.firebaseio.com",
+    "project_id": "geotester-eba65",
+    "storage_bucket": "geotester-eba65.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:974681705483:android:8bab9935b27a828c",
+        "android_client_info": {
+          "package_name": "uk.co.sullenart.nearlythere"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "974681705483-7o4h8f7ls0fu52o95mvhrp4u52hg6enu.apps.googleusercontent.com",
+          "client_type": 3
+        },
+        {
+          "client_id": "974681705483-7o4h8f7ls0fu52o95mvhrp4u52hg6enu.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDEoTlrkXwubzl6yNc1KzUvEFE9J8H07R8"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

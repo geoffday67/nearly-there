@@ -1,10 +1,11 @@
-package uk.co.sullenart.nearlythere
+package uk.co.sullenart.nearlythere.data
 
 import android.arch.persistence.room.Dao
 import android.arch.persistence.room.Insert
 import android.arch.persistence.room.OnConflictStrategy.REPLACE
 import android.arch.persistence.room.Query
 import io.reactivex.Flowable
+import uk.co.sullenart.nearlythere.model.Destination
 
 @Dao
 interface DestinationDao {
