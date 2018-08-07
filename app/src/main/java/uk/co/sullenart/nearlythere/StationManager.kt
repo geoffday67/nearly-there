@@ -5,7 +5,7 @@ import java.io.InputStream
 import javax.inject.Inject
 
 class StationManager @Inject constructor(
-        val stationDao: StationDao
+        private val stationDao: StationDao
 ) {
     fun loadStations(input: InputStream) {
         stationDao.clear()

@@ -5,6 +5,6 @@ import javax.inject.Singleton
 
 @Component(modules = [DataModule::class])
 @Singleton
-interface DataComponent {
+interface MainComponent {
     fun inject(baseActivity: BaseActivity)
 }

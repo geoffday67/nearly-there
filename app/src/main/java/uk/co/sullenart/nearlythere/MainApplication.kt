@@ -6,7 +6,7 @@ import timber.log.Timber
 import timber.log.Timber.DebugTree
 
 class MainApplication : Application() {
-    lateinit var component: DataComponent
+    lateinit var component: MainComponent
 
     override fun onCreate() {
         super.onCreate()
@@ -17,7 +17,7 @@ class MainApplication : Application() {
 
         Stetho.initializeWithDefaults(this);
 
-        component = DaggerDataComponent.builder()
+        component = DaggerMainComponent.builder()
                 .dataModule(DataModule(this))
                 .build()
     }
