@@ -18,7 +18,7 @@ class MainApplication : Application() {
         Stetho.initializeWithDefaults(this);
 
         component = DaggerMainComponent.builder()
-                .dataModule(DataModule(this))
+                .mainModule(MainModule(this))
                 .build()
     }
 }

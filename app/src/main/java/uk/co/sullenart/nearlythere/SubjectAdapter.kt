@@ -20,7 +20,7 @@ class SubjectAdapter(context: Context) : ArrayAdapter<Subject>(context, R.layout
         view.findViewById<TextView>(R.id.destination_state).text =
                 if (subject.destination.active) "Active" else "Inactive"
 
-        if (subject.nearby) {
+        if (subject.highlighted) {
             view.setBackgroundColor(Color.CYAN)
         }
 
@@ -33,6 +33,17 @@ class SubjectAdapter(context: Context) : ArrayAdapter<Subject>(context, R.layout
             if (item.destination.name == subject.destination.name) {
                 remove(item)
                 insert(subject, i)
+                return
+            }
+        }
+    }
+
+    fun setHighlightByName(name: String, highlight: Boolean) {
+        for (i in 0 until count) {
+            val item = getItem(i)
+            if (item.destination.name == name) {
+                item.highlighted = highlight
+                notifyDataSetChanged()
                 return
             }
         }

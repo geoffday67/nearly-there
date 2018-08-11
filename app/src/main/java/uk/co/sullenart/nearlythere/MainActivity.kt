@@ -4,34 +4,25 @@ Create an ongoing notification, use it set the DestinationService to foreground.
 
 package uk.co.sullenart.nearlythere
 
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.content.ComponentName
-import android.content.Context
+import android.Manifest
 import android.content.Intent
-import android.content.ServiceConnection
-import android.content.res.Configuration
-import android.os.Build
 import android.os.Bundle
-import android.os.IBinder
 import android.support.design.widget.FloatingActionButton
-import android.support.v4.app.NotificationCompat
 import android.support.v7.widget.Toolbar
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.ListView
 import butterknife.BindView
-import io.reactivex.Flowable
+import butterknife.OnClick
+import com.tbruyelle.rxpermissions2.RxPermissions
 import io.reactivex.android.schedulers.AndroidSchedulers
 import timber.log.Timber
 import uk.co.sullenart.nearlythere.model.Destination
 import uk.co.sullenart.nearlythere.model.Subject
 
-private const val MONITORING_CHANNEL_NAME = "Destination monitoring"
-private const val MONITORING_CHANNEL_ID = "monitoring"
-
-private const val ALERT_CHANNEL_NAME = "Destination alert"
-private const val ALERT_CHANNEL_ID = "alert"
+const val MONITORING_CHANNEL_NAME = "Destination monitoring"
+const val MONITORING_CHANNEL_ID = "monitoring"
+const val MONITORING_NOTIFICATION_ID = 1
 
 class MainActivity : BaseActivity(R.layout.activity_main) {
 
@@ -45,79 +36,58 @@ class MainActivity : BaseActivity(R.layout.activity_main) {
     lateinit var destinationList: ListView
 
     lateinit var subjectAdapter: SubjectAdapter
-    //val destinationService = DestinationService
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setSupportActionBar(toolbar)
 
-        // TODO Get permissions
+        RxPermissions(this)
+                .request(Manifest.permission.ACCESS_FINE_LOCATION)
+                .take(1)
+                .subscribe {
+                    // Set up database with some sample data for testing
+                    with(destinationDao) {
+                        clear()
+                        addDestination(Destination("BoA", 51.34491248869605, -2.252326638171736, true))
+                        addDestination(Destination("Somewhere else", 51.0, -2.0, false))
+                        addDestination(Destination("Home", 51.4273413, -2.2255878, true))
+                        addDestination(Destination("Temple Meads", 51.4497534, -2.583208, true))
+                    }
 
-        // Create notification channel for Android >= 26
-        if (Build.VERSION.SDK_INT >= 26) {
-            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                    // Show the list of destinations
+                    subjectAdapter = SubjectAdapter(this)
+                    destinationList.adapter = subjectAdapter
 
-            notificationManager.createNotificationChannel(
-                    NotificationChannel(MONITORING_CHANNEL_ID, MONITORING_CHANNEL_NAME, NotificationManager.IMPORTANCE_LOW)
-            )
+                    // Start a foreground service so we keep running
+                    DestinationService.start(this)
 
-            notificationManager.createNotificationChannel(
-                    NotificationChannel(ALERT_CHANNEL_ID, ALERT_CHANNEL_NAME, NotificationManager.IMPORTANCE_LOW)//HIGH)
-            )
-        }
+                    monitorDestinations()
 
-        with(destinationDao) {
-            clear()
-            addDestination(Destination("BoA", 51.34491248869605, -2.252326638171736, true))
-            addDestination(Destination("Somewhere else", 51.0, -2.0, false))
-            addDestination(Destination("Home", 51.4273413, -2.2255878, true))
-            addDestination(Destination("Temple Meads", 51.4497534,-2.583208, true))
-        }
+                    addDestination.setOnClickListener { onAddClick() }
 
-        /*
-        Start the service, then bind to it separately, so it isn't stopped when this activity is destroyed and unbinds.
-         */
-
-        // Start up the destination monitoring service
-        Intent(this, DestinationService::class.java).let {
-            bindService(it, destinationConnection, Context.BIND_AUTO_CREATE)
-        }
-
-        subjectAdapter = SubjectAdapter(this)
-        destinationList.adapter = subjectAdapter
-
-        addDestination.setOnClickListener { onAddClick() }
-
-/*val start = System.currentTimeMillis()
-assets.open("stations.dat").use {
-stationManager.loadStations(it)
-}
-val end = System.currentTimeMillis()
-Timber.d("%d stations loaded in %d milliseconds", stationManager.stationCount, end - start);*/
+                    Timber.d("Activity created")
+                }
     }
 
     override fun onDestroy() {
         super.onDestroy()
 
-        unbindService(destinationConnection)
+        destinationManager.cancelAll()
+        DestinationService.stop(this)
+
+        Timber.d("Activity destroyed")
     }
 
-    // Object which handles connection to destination service
-    private val destinationConnection = object : ServiceConnection {
-        override fun onServiceDisconnected(name: ComponentName) {
-            Timber.e("Error connecting to destination service")
-        }
-
-        override fun onServiceConnected(name: ComponentName, binder: IBinder?) {
-            Timber.d("Connected to destination service")
-
-            val destinationService = (binder as DestinationBinder).destinationService
-            destinationService.setForeground(getMonitoringNotification())
-            monitorDestinations(destinationService)
+    override fun onNewIntent(intent: Intent) {
+        when (intent.action) {
+            AlertManager.ACTION_DELETE_ALERT -> {
+                subjectAdapter.setHighlightByName(intent.getStringExtra(AlertManager.EXTRA_DELETE_ALERT_NAME), false)
+            }
+            else -> destinationManager.handleNewIntent(intent)
         }
     }
 
-    private fun monitorDestinations(destinationService: DestinationService) {
+    private fun monitorDestinations() {
         // Get the current destinations in the database and start monitoring them
         // TODO React to changes in the database, e.g. remove take(1)?
         destinationDao.getAllDestinations()
@@ -125,14 +95,28 @@ Timber.d("%d stations loaded in %d milliseconds", stationManager.stationCount, e
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe { destinations ->
                     Timber.d("Monitoring ${destinations.size} possible destination(s) from database")
-                    destinationService.setDestinations(destinations.filter { it.active })
+
+                    destinationManager.setDestinations(Intent(this, MainActivity::class.java),
+                            destinations.filter { it.active })
+
                     subjectAdapter.clear()
                     destinations.forEach { subjectAdapter.add(Subject(it)) }
                 }
 
         // React to entering and leaving destination areas
         // TODO Start an ongoing notification if near a destination (AlarmManager?)
-        Flowable.merge(
+        compositeDisposable.add(destinationManager.enteredDestinations
+                .map { Subject(destination = it, highlighted = true) }
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe {
+                    Timber.d("Entered ${it.destination.name}")
+                    subjectAdapter.update(it)
+                    alertManager.alertDestination(it.destination)
+                }
+        )
+
+
+        /*Flowable.merge(
                 destinationService.enteredDestinations
                         .map { Subject(it, true) },
                 destinationService.leftDestinations
@@ -142,11 +126,16 @@ Timber.d("%d stations loaded in %d milliseconds", stationManager.stationCount, e
                 .subscribe {
                     subjectAdapter.update(it)
 
-                    if (it.nearby) {
+                    if (it.highlighted) {
                         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                         notificationManager.notify(2, getAlertNotification(it.destination))
                     }
-                }
+                }*/
+    }
+
+    @OnClick(R.id.quit)
+    fun onQuit() {
+        finish()
     }
 
     private fun onAddClick() {
@@ -164,22 +153,4 @@ Timber.d("%d stations loaded in %d milliseconds", stationManager.stationCount, e
             else -> super.onOptionsItemSelected(item)
         }
     }
-
-    fun getMonitoringNotification() =
-            NotificationCompat.Builder(this, MONITORING_CHANNEL_ID)
-                    .setSmallIcon(R.drawable.ic_location)
-                    .setContentTitle("Nearly There")
-                    .setContentText("Checking if you're nearly there yet")
-                    .setOngoing(true)
-                    .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                    .setChannelId(MONITORING_CHANNEL_ID)
-                    .build()
-
-    fun getAlertNotification(destination: Destination) =
-            NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
-                    .setSmallIcon(R.drawable.ic_location)
-                    .setContentTitle("Nearly at ${destination.name}")
-                    .setPriority(NotificationCompat.PRIORITY_HIGH)
-                    .setChannelId(ALERT_CHANNEL_ID)
-                    .build()
 }
