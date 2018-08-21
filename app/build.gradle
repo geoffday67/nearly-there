@@ -45,6 +45,7 @@ dependencies {
     implementation 'com.jakewharton.timber:timber:4.6.1'
     implementation 'com.github.humazed:RoomAsset:v1.0'
     implementation 'com.google.android.gms:play-services-location:15.0.1'
+    implementation 'com.google.android.gms:play-services-places:15.0.1'
     implementation 'com.github.tbruyelle:rxpermissions:0.10.2'
     implementation 'com.google.firebase:firebase-database:16.0.1'
 

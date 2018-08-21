@@ -17,6 +17,7 @@ import butterknife.OnClick
 import com.tbruyelle.rxpermissions2.RxPermissions
 import io.reactivex.android.schedulers.AndroidSchedulers
 import timber.log.Timber
+import uk.co.sullenart.nearlythere.destination.AddDestinationActivity
 import uk.co.sullenart.nearlythere.model.Destination
 import uk.co.sullenart.nearlythere.model.Subject
 
@@ -50,7 +51,7 @@ class MainActivity : BaseActivity(R.layout.activity_main) {
                         clear()
                         addDestination(Destination("BoA", 51.34491248869605, -2.252326638171736, true))
                         addDestination(Destination("Somewhere else", 51.0, -2.0, false))
-                        addDestination(Destination("Home", 51.4273413, -2.2255878, true))
+                        //addDestination(Destination("Home", 51.4273413, -2.2255878, true))
                         addDestination(Destination("Temple Meads", 51.4497534, -2.583208, true))
                     }
 
@@ -80,9 +81,7 @@ class MainActivity : BaseActivity(R.layout.activity_main) {
 
     override fun onNewIntent(intent: Intent) {
         when (intent.action) {
-            AlertManager.ACTION_DELETE_ALERT -> {
-                subjectAdapter.setHighlightByName(intent.getStringExtra(AlertManager.EXTRA_DELETE_ALERT_NAME), false)
-            }
+            AlertManager.ACTION_DELETE_ALERT -> subjectAdapter.setHighlightByName(intent.getStringExtra(AlertManager.EXTRA_DELETE_ALERT_NAME), false)
             else -> destinationManager.handleNewIntent(intent)
         }
     }
@@ -90,8 +89,8 @@ class MainActivity : BaseActivity(R.layout.activity_main) {
     private fun monitorDestinations() {
         // Get the current destinations in the database and start monitoring them
         // TODO React to changes in the database, e.g. remove take(1)?
-        destinationDao.getAllDestinations()
-                .take(1)
+        compositeDisposable.add(destinationDao.getAllDestinations()
+                //.take(1)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe { destinations ->
                     Timber.d("Monitoring ${destinations.size} possible destination(s) from database")
@@ -102,6 +101,7 @@ class MainActivity : BaseActivity(R.layout.activity_main) {
                     subjectAdapter.clear()
                     destinations.forEach { subjectAdapter.add(Subject(it)) }
                 }
+        )
 
         // React to entering and leaving destination areas
         // TODO Start an ongoing notification if near a destination (AlarmManager?)
@@ -139,7 +139,13 @@ class MainActivity : BaseActivity(R.layout.activity_main) {
     }
 
     private fun onAddClick() {
-        AddDestinationActivity.launch(this)
+        /*val transaction = fragmentManager.beginTransaction().apply {
+            setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
+            add(android.R.id.content, AddDestinationDialog())
+            addToBackStack(null)
+            commit()
+        }*/
+        AddDestinationActivity.start(this)
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {

@@ -25,10 +25,19 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".AddDestinationActivity" />
+
+        <activity android:name=".destination.AddDestinationActivity"
+            android:theme="@style/AppTheme.NoActionBar">
+        </activity>
+
         <activity android:name=".DestinationActivity" />
         <service android:name=".DestinationService" />
         <service android:name=".NotificationService" />
+
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyCiwuAqCNMrBRjE-qEG5myAvu5e_KBTB0Y"/>
+
     </application>
 
 </manifest>
