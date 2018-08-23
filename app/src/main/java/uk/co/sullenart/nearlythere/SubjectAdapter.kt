@@ -3,22 +3,34 @@ package uk.co.sullenart.nearlythere
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
+import android.graphics.Paint
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
+import android.widget.ImageButton
 import android.widget.TextView
 import uk.co.sullenart.nearlythere.model.Subject
 
-class SubjectAdapter(context: Context) : ArrayAdapter<Subject>(context, R.layout.destination_list_item) {
+interface SubjectMenuListener {
+    fun onMenu (subject: Subject, view: View)
+}
+
+class SubjectAdapter(context: Context, val listener: SubjectMenuListener) : ArrayAdapter<Subject>(context, R.layout.destination_list_item) {
     @SuppressLint("ViewHolder")
     override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
         val subject = getItem(position)
         val inflater = LayoutInflater.from(context)
         val view = inflater.inflate(R.layout.destination_list_item, parent, false)
-        view.findViewById<TextView>(R.id.destination_name).text = subject.destination.name
-        view.findViewById<TextView>(R.id.destination_state).text =
-                if (subject.destination.active) "Active" else "Inactive"
+        view.findViewById<TextView>(R.id.destination_name).apply {
+            text = subject.destination.name
+            if (!subject.destination.active) {
+                paintFlags = paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
+            }
+        }
+        view.findViewById<ImageButton>(R.id.destination_menu).setOnClickListener {
+            listener.onMenu(subject, it)
+        }
 
         if (subject.highlighted) {
             view.setBackgroundColor(Color.CYAN)

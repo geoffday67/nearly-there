@@ -11,14 +11,15 @@ import android.support.design.widget.FloatingActionButton
 import android.support.v7.widget.Toolbar
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import android.widget.ListView
+import android.widget.PopupMenu
 import butterknife.BindView
 import butterknife.OnClick
 import com.tbruyelle.rxpermissions2.RxPermissions
 import io.reactivex.android.schedulers.AndroidSchedulers
 import timber.log.Timber
 import uk.co.sullenart.nearlythere.destination.AddDestinationActivity
-import uk.co.sullenart.nearlythere.model.Destination
 import uk.co.sullenart.nearlythere.model.Subject
 
 const val MONITORING_CHANNEL_NAME = "Destination monitoring"
@@ -47,16 +48,16 @@ class MainActivity : BaseActivity(R.layout.activity_main) {
                 .take(1)
                 .subscribe {
                     // Set up database with some sample data for testing
-                    with(destinationDao) {
+                    /*with(destinationDao) {
                         clear()
                         addDestination(Destination("BoA", 51.34491248869605, -2.252326638171736, true))
                         addDestination(Destination("Somewhere else", 51.0, -2.0, false))
                         //addDestination(Destination("Home", 51.4273413, -2.2255878, true))
                         addDestination(Destination("Temple Meads", 51.4497534, -2.583208, true))
-                    }
+                    }*/
 
                     // Show the list of destinations
-                    subjectAdapter = SubjectAdapter(this)
+                    subjectAdapter = SubjectAdapter(this, subjectMenuListener)
                     destinationList.adapter = subjectAdapter
 
                     // Start a foreground service so we keep running
@@ -64,7 +65,9 @@ class MainActivity : BaseActivity(R.layout.activity_main) {
 
                     monitorDestinations()
 
-                    addDestination.setOnClickListener { onAddClick() }
+                    addDestination.setOnClickListener {
+                        AddDestinationActivity.start(this)
+                    }
 
                     Timber.d("Activity created")
                 }
@@ -86,11 +89,31 @@ class MainActivity : BaseActivity(R.layout.activity_main) {
         }
     }
 
+    private val subjectMenuListener = object : SubjectMenuListener {
+        override fun onMenu(subject: Subject, view: View) {
+            val popup = PopupMenu(this@MainActivity, view).apply {
+                inflate(R.menu.destination_popup_menu)
+            }
+            val menu = popup.menu
+            menu.findItem(R.id.destination_enable).setVisible(!subject.destination.active)
+            menu.findItem(R.id.destination_disable).setVisible(subject.destination.active)
+
+            popup.setOnMenuItemClickListener {
+                when (it.itemId) {
+                    R.id.destination_disable -> dataManager.setDestinationActive(subject.destination, false)
+                    R.id.destination_enable -> dataManager.setDestinationActive(subject.destination, true)
+                    R.id.destination_delete -> dataManager.deleteDestination(subject.destination)
+                }
+
+                true
+            }
+
+            popup.show()
+        }
+    }
+
     private fun monitorDestinations() {
-        // Get the current destinations in the database and start monitoring them
-        // TODO React to changes in the database, e.g. remove take(1)?
-        compositeDisposable.add(destinationDao.getAllDestinations()
-                //.take(1)
+        compositeDisposable.add(dataManager.getAllDestinations()
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe { destinations ->
                     Timber.d("Monitoring ${destinations.size} possible destination(s) from database")
@@ -100,6 +123,7 @@ class MainActivity : BaseActivity(R.layout.activity_main) {
 
                     subjectAdapter.clear()
                     destinations.forEach { subjectAdapter.add(Subject(it)) }
+                    subjectAdapter.notifyDataSetChanged()
                 }
         )
 
@@ -115,22 +139,6 @@ class MainActivity : BaseActivity(R.layout.activity_main) {
                 }
         )
 
-
-        /*Flowable.merge(
-                destinationService.enteredDestinations
-                        .map { Subject(it, true) },
-                destinationService.leftDestinations
-                        .map { Subject(it, false) }
-        )
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe {
-                    subjectAdapter.update(it)
-
-                    if (it.highlighted) {
-                        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                        notificationManager.notify(2, getAlertNotification(it.destination))
-                    }
-                }*/
     }
 
     @OnClick(R.id.quit)
@@ -139,12 +147,6 @@ class MainActivity : BaseActivity(R.layout.activity_main) {
     }
 
     private fun onAddClick() {
-        /*val transaction = fragmentManager.beginTransaction().apply {
-            setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
-            add(android.R.id.content, AddDestinationDialog())
-            addToBackStack(null)
-            commit()
-        }*/
         AddDestinationActivity.start(this)
     }
 

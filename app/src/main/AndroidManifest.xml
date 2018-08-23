@@ -27,6 +27,7 @@
         </activity>
 
         <activity android:name=".destination.AddDestinationActivity"
+            android:parentActivityName=".MainActivity"
             android:theme="@style/AppTheme.NoActionBar">
         </activity>
 

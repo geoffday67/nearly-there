@@ -28,6 +28,8 @@ class DestinationManager (val context: Context) {
 
 
     fun setDestinations(intent: Intent, destinations: List<Destination>) {
+        // TODO Stop any existing geofences
+
         // Store the destinations in a map against their names
         monitoredDestinations.clear()
         destinations.forEach { monitoredDestinations[it.name] = it }

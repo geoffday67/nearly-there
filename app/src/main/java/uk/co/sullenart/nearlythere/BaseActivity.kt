@@ -10,7 +10,7 @@ import javax.inject.Inject
 
 open class BaseActivity(@LayoutRes private val content: Int) : AppCompatActivity() {
     @Inject
-    protected lateinit var destinationDao: DestinationDao
+    protected lateinit var dataManager: DataManager
 
     @Inject
     protected lateinit var stationManager: StationManager

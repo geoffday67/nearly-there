@@ -4,6 +4,7 @@ import android.arch.persistence.room.Room
 import android.content.Context
 import dagger.Module
 import dagger.Provides
+import uk.co.sullenart.nearlythere.data.DestinationDao
 import uk.co.sullenart.nearlythere.data.StationDao
 import javax.inject.Singleton
 
@@ -20,6 +21,9 @@ class MainModule(private val context: Context) {
     fun provideDestinationDao(database: AppDatabase) = database.destinationDao()
 
     @Provides
+    fun provideDataManager(destinationDao: DestinationDao) = DataManager(destinationDao)
+
+    @Provides
     fun provideStationDao(database: AppDatabase) = database.stationDao()
 
     @Provides
@@ -27,9 +31,9 @@ class MainModule(private val context: Context) {
 
     @Provides
     @Singleton
-    fun providesDestinationManager() = DestinationManager(context)
+    fun provideDestinationManager() = DestinationManager(context)
 
     @Provides
     @Singleton
-    fun providesAlertManager() = AlertManager(context)
+    fun provideAlertManager() = AlertManager(context)
 }

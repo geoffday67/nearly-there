@@ -12,6 +12,7 @@ import butterknife.BindView
 import butterknife.OnClick
 import com.google.android.gms.location.places.AutocompleteFilter
 import com.google.android.gms.location.places.ui.PlaceAutocomplete
+import com.google.android.gms.location.places.ui.PlacePicker
 import uk.co.sullenart.nearlythere.BaseActivity
 import uk.co.sullenart.nearlythere.R
 import uk.co.sullenart.nearlythere.model.Destination
@@ -77,7 +78,7 @@ class AddDestinationActivity : BaseActivity(R.layout.activity_add_destination) {
         }
 
         val destination = Destination(name, latitude, longitude, true)
-        destinationDao.addDestination(destination)
+        dataManager.addDestination(destination)
 
         finish()
     }
@@ -87,10 +88,12 @@ class AddDestinationActivity : BaseActivity(R.layout.activity_add_destination) {
         val intent = PlaceAutocomplete.IntentBuilder(PlaceAutocomplete.MODE_FULLSCREEN)
                 .setFilter(
                         AutocompleteFilter.Builder()
-                                //.setCountry("UK")
+                                // TODO Choose whether to filter by country
+                                .setCountry("UK")
                                 .build()
                 )
                 .build(this)
+        //val intent = PlacePicker.IntentBuilder().build(this)
 
         startActivityForResult(intent, PLACE_REQUEST_CODE)
     }
@@ -98,6 +101,7 @@ class AddDestinationActivity : BaseActivity(R.layout.activity_add_destination) {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (requestCode == PLACE_REQUEST_CODE && resultCode == RESULT_OK) {
             PlaceAutocomplete.getPlace(this, data).let {
+            //PlacePicker.getPlace(this, data).let {
                 nameLayout.editText?.setText (it.name.toString())
                 latitudeLayout.editText?.setText(it.latLng.latitude.toString())
                 longitudeLayout.editText?.setText(it.latLng.longitude.toString())
